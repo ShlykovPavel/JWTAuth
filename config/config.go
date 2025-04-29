@@ -3,6 +3,7 @@ package config
 import (
 	"github.com/ilyakaznacheev/cleanenv"
 	"log"
+	"net/url"
 )
 
 // Config содержит параметры аутентификации.
@@ -39,5 +40,22 @@ func LoadConfig() *Config {
 	if err != nil {
 		log.Fatalln("Failed to load config from .env file:", err)
 	}
+	err = ValidateUrl(cfg.LoginURL)
+	err = ValidateUrl(cfg.RefreshURL)
 	return &cfg
+}
+
+// ValidateUrl Validates config URL
+func ValidateUrl(rawURL string) error {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		log.Default().Println("Failed to parse URL:", err)
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		log.Default().Println("URL scheme must be http or https")
+	}
+	if u.Host == "" {
+		log.Default().Println("URL host is empty")
+	}
+	return nil
 }
