@@ -18,7 +18,6 @@ type Config struct {
 	URLHost    string `env:"URL_HOST" env-required:"true"`
 	Username   string `env:"AUTH_USERNAME" env-required:"true"`
 	Password   string `env:"AUTH_PASSWORD" env-required:"true"`
-	Timeout    int    `env:"AUTH_TIMEOUT_MS" env-default:"5000"`
 	RetryCount int    `env:"AUTH_RETRY_COUNT" env-default:"3"`
 }
 
