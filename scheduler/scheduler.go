@@ -20,7 +20,7 @@ func NewScheduler(logger *slog.Logger) *TokenRefresher {
 
 func (t *TokenRefresher) ScheduleRefresh(expiryTime time.Time, refreshFunc func()) {
 	const op = "scheduler.scheduleRefresh"
-	log := slog.With(
+	log := t.logger.With(
 		slog.String("op", op),
 		slog.Any("expiryTime", expiryTime))
 	// 1. Отменить предыдущий таймер (если был)
@@ -37,9 +37,12 @@ func (t *TokenRefresher) ScheduleRefresh(expiryTime time.Time, refreshFunc func(
 	t.timer = time.NewTimer(refreshDuration)
 	ctx, cancel := context.WithCancel(context.Background())
 	t.cancelFunc = cancel
-	log.Info("Schedule timer for refresh.", refreshDuration)
+	log.Info("scheduled token refresh",
+		"refresh_in", refreshDuration.String(),
+		"refresh_at", time.Now().Add(refreshDuration).Format(time.RFC3339))
 
 	go func() {
+		defer log.Debug("refresh goroutine stopped")
 		log.Info("Starting timer for refresh.", refreshDuration)
 		select {
 		case <-t.timer.C:
