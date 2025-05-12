@@ -6,59 +6,87 @@ import (
 	"time"
 )
 
-type TokenRefresher struct {
-	logger     *slog.Logger
+type Scheduler struct {
 	timer      *time.Timer
 	cancelFunc context.CancelFunc
+	onRefresh  func()
+	logger     *slog.Logger
 }
 
-func NewScheduler(logger *slog.Logger) *TokenRefresher {
-	return &TokenRefresher{
-		logger: logger,
+func NewScheduler(onRefresh func(), logger *slog.Logger) *Scheduler {
+	return &Scheduler{
+		onRefresh: onRefresh,
+		logger:    logger,
 	}
 }
 
-func (t *TokenRefresher) ScheduleRefresh(expiryTime time.Time, refreshFunc func()) {
+//func (s *Scheduler) ScheduleRefresh(expiryTime time.Time, refreshFunc func()) {
+//	const op = "scheduler.scheduleRefresh"
+//	log := s.logger.With(
+//		slog.String("op", op),
+//		slog.Any("expiryTime", expiryTime))
+//	// 1. Отменить предыдущий таймер (если был)
+//	if s.timer != nil {
+//		log.Info("Timer is already running. Stop actual timer")
+//		s.timer.Stop()
+//	}
+//
+//	// 2. Вычислить время до обновления
+//	refreshDuration := time.Until(expiryTime) - 1*time.Minute
+//	log.Info("Calculate time for refresh.", refreshDuration)
+//
+//	// 3. Запланировать обновление
+//	s.timer = time.NewTimer(refreshDuration)
+//	ctx, cancel := context.WithCancel(context.Background())
+//	s.cancelFunc = cancel
+//	log.Info("scheduled token refresh",
+//		"refresh_in", refreshDuration.String(),
+//		"refresh_at", time.Now().Add(refreshDuration).Format(time.RFC3339))
+//
+//	go func() {
+//		defer log.Debug("refresh goroutine stopped")
+//		log.Info("Starting timer for refresh.", refreshDuration)
+//		select {
+//		case <-s.timer.C:
+//			s.logger.Info("triggering token refresh")
+//			refreshFunc()
+//		case <-ctx.Done():
+//			s.logger.Debug("refresh canceled")
+//		}
+//	}()
+//}
+
+func (s *Scheduler) Stop() {
+	if s.cancelFunc != nil {
+		s.cancelFunc()
+	}
+	if s.timer != nil {
+		s.timer.Stop()
+	}
+}
+
+func (s *Scheduler) ScheduleRefresh(expiry time.Time) {
 	const op = "scheduler.scheduleRefresh"
-	log := t.logger.With(
-		slog.String("op", op),
-		slog.Any("expiryTime", expiryTime))
-	// 1. Отменить предыдущий таймер (если был)
-	if t.timer != nil {
-		log.Info("Timer is already running. Stop actual timer")
-		t.timer.Stop()
+	log := s.logger.With(
+		slog.String("op", op))
+	s.Stop()
+
+	refreshIn := time.Until(expiry) - 1*time.Minute
+	log.Debug("Calculating time for init refresh: ", refreshIn)
+	if refreshIn < 10*time.Second {
+		refreshIn = 10 * time.Second
 	}
 
-	// 2. Вычислить время до обновления
-	refreshDuration := time.Until(expiryTime) - 1*time.Minute
-	log.Info("Calculate time for refresh.", refreshDuration)
-
-	// 3. Запланировать обновление
-	t.timer = time.NewTimer(refreshDuration)
 	ctx, cancel := context.WithCancel(context.Background())
-	t.cancelFunc = cancel
-	log.Info("scheduled token refresh",
-		"refresh_in", refreshDuration.String(),
-		"refresh_at", time.Now().Add(refreshDuration).Format(time.RFC3339))
+	s.cancelFunc = cancel
 
+	s.timer = time.NewTimer(refreshIn)
 	go func() {
-		defer log.Debug("refresh goroutine stopped")
-		log.Info("Starting timer for refresh.", refreshDuration)
 		select {
-		case <-t.timer.C:
-			t.logger.Info("triggering token refresh")
-			refreshFunc()
+		case <-s.timer.C:
+			s.onRefresh()
 		case <-ctx.Done():
-			t.logger.Debug("refresh canceled")
+			s.logger.Debug("refresh canceled")
 		}
 	}()
-}
-
-func (t *TokenRefresher) Stop() {
-	if t.cancelFunc != nil {
-		t.cancelFunc()
-	}
-	if t.timer != nil {
-		t.timer.Stop()
-	}
 }
