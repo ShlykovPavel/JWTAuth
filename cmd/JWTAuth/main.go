@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/ShlykovPavel/JWTAuth/auth"
 	"github.com/ShlykovPavel/JWTAuth/config"
 	"log/slog"
 	"os"
@@ -18,6 +19,27 @@ func main() {
 	log := setupLogger(cfg.Env)
 	log.Info("Starting application")
 	log.Debug("Debug messages enabled")
+
+	jwtauth := auth.NewJwtAuth(
+		"https://unuk-admin-stage.devol.xyz/api/accounts/login",
+		"https://unuk-admin-stage.devol.xyz/api/accounts/refresh-tokens",
+		cfg.Username,
+		cfg.Password,
+		cfg.RetryCount,
+		log)
+	err := jwtauth.Start()
+	if err != nil {
+		log.Error("Error starting jwtauth", err.Error())
+	}
+	token, err := jwtauth.GetToken()
+	if err != nil {
+		log.Error("failed to get token", "error", err)
+		return
+	}
+
+	log.Info("successfully got token", "token", token)
+	select {}
+	//time.Sleep(time.Minute * 10)
 }
 
 // setupLogger
