@@ -15,11 +15,9 @@ import (
 // AUTH_PASSWORD     - Пароль (не логируйте!)
 type Config struct {
 	Env        string `env:"ENV" env-default:"production"`
-	LoginURL   string `env:"AUTH_LOGIN_URL" env-required:"true"`
-	RefreshURL string `env:"AUTH_REFRESH_URL" env-required:"true"`
+	URLHost    string `env:"URL_HOST" env-required:"true"`
 	Username   string `env:"AUTH_USERNAME" env-required:"true"`
 	Password   string `env:"AUTH_PASSWORD" env-required:"true"`
-	Timeout    int    `env:"AUTH_TIMEOUT_MS" env-default:"5000"`
 	RetryCount int    `env:"AUTH_RETRY_COUNT" env-default:"3"`
 }
 
@@ -40,8 +38,7 @@ func LoadConfig() *Config {
 	if err != nil {
 		log.Fatalln("Failed to load config from .env file:", err)
 	}
-	err = ValidateUrl(cfg.LoginURL)
-	err = ValidateUrl(cfg.RefreshURL)
+	err = ValidateUrl(cfg.URLHost)
 	return &cfg
 }
 
