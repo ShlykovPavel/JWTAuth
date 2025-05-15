@@ -14,7 +14,7 @@ const (
 )
 
 func main() {
-	cfg := config.LoadConfig()
+	cfg := config.LoadConfig(".env")
 	//log.Default().Println("cfg:", cfg)
 	log := setupLogger(cfg.Env)
 	log.Info("Starting application")
