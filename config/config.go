@@ -3,7 +3,6 @@ package config
 import (
 	"github.com/ilyakaznacheev/cleanenv"
 	"log"
-	"net/url"
 )
 
 // Config содержит параметры аутентификации.
@@ -15,7 +14,6 @@ import (
 // AUTH_PASSWORD     - Пароль (не логируйте!)
 type Config struct {
 	Env        string `env:"ENV" env-default:"production"`
-	URLHost    string `env:"URL_HOST" env-required:"true"`
 	Username   string `env:"AUTH_USERNAME" env-required:"true"`
 	Password   string `env:"AUTH_PASSWORD" env-required:"true"`
 	RetryCount int    `env:"AUTH_RETRY_COUNT" env-default:"3"`
@@ -24,35 +22,22 @@ type Config struct {
 // LoadConfig Загрузка конфига
 //
 // Сначала загружается конфиг из окружения, если в окружении нет нужных переменных, то происходит попытка загрузки конфига из .env файла
-func LoadConfig() *Config {
+func LoadConfig(filePath string) *Config {
 	var cfg Config
 	//Чтение переменных окружения
 	err := cleanenv.ReadEnv(&cfg)
 	if err != nil {
 		log.Default().Println("Failed to load config from env:", err)
 		log.Default().Println("Using default config from .env")
+	} else {
+		return &cfg
 	}
-
 	//	Чтение .env файла
-	err = cleanenv.ReadConfig(".env", &cfg)
+	err = cleanenv.ReadConfig(filePath, &cfg)
 	if err != nil {
 		log.Fatalln("Failed to load config from .env file:", err)
 	}
-	err = ValidateUrl(cfg.URLHost)
 	return &cfg
 }
 
-// ValidateUrl Validates config URL
-func ValidateUrl(rawURL string) error {
-	u, err := url.Parse(rawURL)
-	if err != nil {
-		log.Default().Println("Failed to parse URL:", err)
-	}
-	if u.Scheme != "http" && u.Scheme != "https" {
-		log.Default().Println("URL scheme must be http or https")
-	}
-	if u.Host == "" {
-		log.Default().Println("URL host is empty")
-	}
-	return nil
-}
+//TODO Добавить чтение конфига из yaml
