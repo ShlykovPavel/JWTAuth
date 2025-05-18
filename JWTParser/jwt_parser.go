@@ -15,7 +15,7 @@ func ParseUnverified(tokenString string, log *slog.Logger) (jwt.MapClaims, error
 	parser := jwt.NewParser()
 	token, _, err := parser.ParseUnverified(tokenString, jwt.MapClaims{})
 	if err != nil {
-		log.Error("parsing error", err)
+		log.Error("parsing error", slog.String("error", err.Error()))
 		return nil, err
 	}
 	return token.Claims.(jwt.MapClaims), nil
