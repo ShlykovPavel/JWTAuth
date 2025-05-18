@@ -29,7 +29,7 @@ func main() {
 		log)
 	err := jwtauth.Start()
 	if err != nil {
-		log.Error("Error starting jwtauth", err.Error())
+		log.Error("Error starting jwtauth", "error", err.Error())
 	}
 	token, err := jwtauth.GetToken()
 	if err != nil {

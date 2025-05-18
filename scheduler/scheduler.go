@@ -36,7 +36,7 @@ func (s *Scheduler) ScheduleRefresh(expiry time.Time) {
 	s.Stop()
 
 	refreshIn := time.Until(expiry) - 1*time.Minute
-	log.Debug("Calculating time for init refresh: ", refreshIn)
+	log.Debug("Calculating time for init refresh: ", slog.Any("time to refresh", refreshIn))
 	if refreshIn < 10*time.Second {
 		refreshIn = 10 * time.Second
 	}
