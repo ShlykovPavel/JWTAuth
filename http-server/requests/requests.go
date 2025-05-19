@@ -18,8 +18,8 @@ type Tokens struct {
 }
 
 type Credentials struct {
-	Username string `json:"login"`
-	Password string `json:"password"`
+	Username string `json:"accessKey"`
+	Password string `json:"secretKey"`
 }
 
 // LoginOrRefreshInService выполняет аутентификацию или обновление токена.
@@ -47,11 +47,11 @@ func LoginOrRefreshInService[T Credentials | Tokens](URL string, body T, log *sl
 		slog.String("body", string(jsonData)),
 	)
 
-	log.Debug("request body", string(jsonData))
+	log.Debug("request body", slog.String("data", string(jsonData)))
 	for attempt := 0; attempt <= retryCount; attempt++ {
 		resp, err := makePostRequest(URL, jsonData, log)
 		if err != nil {
-			log.Error("Error in request: ", err)
+			log.Error("Error in request: ", slog.String("error", err.Error()))
 			if attempt == retryCount {
 				return nil, err
 			}
@@ -76,7 +76,7 @@ func LoginOrRefreshInService[T Credentials | Tokens](URL string, body T, log *sl
 			"status", resp.StatusCode,
 			"body", string(respBody))
 		if err != nil {
-			log.Error("Error while reading response body", err)
+			log.Error("Error while reading response body", slog.String("error", err.Error()))
 			return nil, err
 		}
 		//Небольшая задержка перед следующей попыткой
@@ -103,7 +103,7 @@ func makePostRequest(URL string, data []byte, log *slog.Logger) (*http.Response,
 			return nil, fmt.Errorf("request timeout: %w", err)
 		}
 		//Общая логика ошибок
-		log.Error("HTTP request failed: ", err)
+		log.Error("HTTP request failed: ", slog.String("error", err.Error()))
 		return nil, err
 
 	}
