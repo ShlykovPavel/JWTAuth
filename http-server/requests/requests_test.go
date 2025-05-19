@@ -84,7 +84,7 @@ func TestLoginOrRefreshInService(t *testing.T) {
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
 		switch string(body) {
-		case `{"login":"test","password":"password"}`:
+		case `{"accessKey":"test","secretKey":"password"}`:
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(`{"accessToken": "valid", "refreshToken": "valid"}`))
 			return
@@ -92,13 +92,13 @@ func TestLoginOrRefreshInService(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(`{"accessToken": "valid", "refreshToken": "valid"}`))
 			return
-		case `{"login":"test2","password":"password2"}`:
+		case `{"accessKey":"test2","secretKey":"password2"}`:
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		case `{"accessToken":"access2","refreshToken":"refresh2"}`:
 			w.WriteHeader(http.StatusBadRequest)
 			return
-		case `{"login":"test3","password":"password3"}`:
+		case `{"accessKey":"test3","secretKey":"password3"}`:
 			time.Sleep(time.Second * 11)
 			return
 		case `{"accessToken":"access3","refreshToken":"refresh3"}`:
