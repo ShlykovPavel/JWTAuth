@@ -18,8 +18,8 @@ type Tokens struct {
 }
 
 type Credentials struct {
-	Username string `json:"login"`
-	Password string `json:"password"`
+	Username string `json:"accessKey"`
+	Password string `json:"secretKey"`
 }
 
 // LoginOrRefreshInService выполняет аутентификацию или обновление токена.
