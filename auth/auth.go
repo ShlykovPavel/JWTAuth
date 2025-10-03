@@ -7,6 +7,7 @@ import (
 	"github.com/ShlykovPavel/JWTAuth/scheduler"
 	"log/slog"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -19,6 +20,7 @@ type JWTAuth struct {
 	scheduler   *scheduler.Scheduler
 	tokens      *requests.Tokens
 	httpClient  *http.Client
+	mu          sync.RWMutex // Используем RWMutex для оптимизации чтения
 }
 
 func NewJwtAuth(loginURL, refreshURL, username, password string, retryCount int, logger *slog.Logger) *JWTAuth {
@@ -43,7 +45,10 @@ func (a *JWTAuth) Start() error {
 	if err != nil {
 		return err
 	}
+
+	a.mu.Lock()
 	a.tokens = tokens
+	a.mu.Unlock()
 
 	// Инициализация планировщика
 	a.scheduler = scheduler.NewScheduler(a.handleRefresh, a.logger)
@@ -57,6 +62,9 @@ func (a *JWTAuth) Start() error {
 }
 
 func (a *JWTAuth) handleRefresh() {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
 	newTokens, err := requests.LoginOrRefreshInService(
 		a.refreshURL,
 		*a.tokens,
@@ -69,13 +77,21 @@ func (a *JWTAuth) handleRefresh() {
 	}
 	a.tokens = newTokens
 
-	// Планируем следующее обновление
-	if err := a.scheduleNextRefresh(); err != nil {
+	// Планируем следующее обновление (без блокировки, так как мьютекс уже заблокирован)
+	if err := a.scheduleNextRefreshUnlocked(); err != nil {
 		a.logger.Error("failed to schedule next refresh", "error", err)
 	}
 }
 
 func (a *JWTAuth) scheduleNextRefresh() error {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+
+	return a.scheduleNextRefreshUnlocked()
+}
+
+// scheduleNextRefreshUnlocked - внутренний метод без блокировок
+func (a *JWTAuth) scheduleNextRefreshUnlocked() error {
 	claims, err := JWTParser.ParseUnverified(a.tokens.AccessToken, a.logger)
 	if err != nil {
 		return err
@@ -91,6 +107,9 @@ func (a *JWTAuth) scheduleNextRefresh() error {
 }
 
 func (a *JWTAuth) GetToken() (string, error) {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+
 	if a.tokens == nil {
 		return "", errors.New("not authenticated")
 	}
